@@ -18,7 +18,7 @@ Pacman agents (in searchAgents.py).
 """
 
 import util
-
+import heapq
 class SearchProblem:
     """
     This class outlines the structure of a search problem, but doesn't implement
@@ -98,18 +98,18 @@ def depthFirstSearch(problem):
     transitionTable = dict()
     
     while ( True ):
-        leafNode = frontier.pop()
-        if problem.isGoalState(leafNode):
+        currentNode = frontier.pop()
+        if problem.isGoalState(currentNode):
             break
-        explored.add(leafNode)
-        leaves = problem.getSuccessors(leafNode)
+        explored.add(currentNode)
+        leaves = problem.getSuccessors(currentNode)
         for leaf in leaves:
             if not (leaf[0] in explored or  transitionTable.has_key(leaf[0])):
                 frontier.push(leaf[0])
                 # record in transitionTable
-                transitionTable[leaf[0]] = [leafNode, leaf[1]]
+                transitionTable[leaf[0]] = [currentNode, leaf[1]]
     
-    child = leafNode
+    child = currentNode
 
     # backtracing
     while ( True ):
@@ -134,18 +134,18 @@ def breadthFirstSearch(problem):
     transitionTable = dict()
     
     while ( True ):
-        leafNode = frontier.pop()
-        if problem.isGoalState(leafNode):
+        currentNode = frontier.pop()
+        if problem.isGoalState(currentNode):
             break
-        explored.add(leafNode)
-        leaves = problem.getSuccessors(leafNode)
+        explored.add(currentNode)
+        leaves = problem.getSuccessors(currentNode)
         for leaf in leaves:
             if not (leaf[0] in explored or  transitionTable.has_key(leaf[0])):
                 frontier.push(leaf[0])
                 # record in transitionTable
-                transitionTable[leaf[0]] = [leafNode, leaf[1]]
+                transitionTable[leaf[0]] = [currentNode, leaf[1]]
     
-    child = leafNode
+    child = currentNode
 
     # backtracing
     while ( True ):
@@ -162,11 +162,44 @@ def uniformCostSearch(problem):
     "*** YOUR CODE HERE ***"
     from util import PriorityQueue
     frontier = PriorityQueue()
-    frontier.push(problem.getStartState())
+    
+    node = problem.getStartState()
     explored = set()
     actionList = []
     transitionTable = dict()
-    node = problem.getStartState()
+    stateCostTable = dict()
+    frontier.push(node, 0)
+    stateCostTable[node] = 0
+    
+    while ( True ):
+        currentNode = frontier.pop()
+        if problem.isGoalState(currentNode):
+            break
+        explored.add(currentNode)
+        leaves = problem.getSuccessors(currentNode)
+        for leaf in leaves:
+            if leaf[0] not in explored:
+                newPathcost = stateCostTable.get(currentNode)+leaf[2] # cost = prevCost + stepCost
+                if transitionTable.has_key(leaf[0]):
+                    if newPathcost < stateCostTable[leaf[0]]:  # if newPathcost < oldPathcost then update
+                        frontier.update(leaf[0], newPathcost)
+                        stateCostTable[leaf[0]] = newPathcost
+                        transitionTable[leaf[0]] = [currentNode, leaf[1]]
+                else:
+                    frontier.update(leaf[0], newPathcost)
+                    stateCostTable[leaf[0]] = newPathcost
+                    transitionTable[leaf[0]] = [currentNode, leaf[1]]
+    
+    child = currentNode
+
+    # backtracing
+    while ( True ):
+        parent = transitionTable.get(child)
+        if parent == None:
+            break
+        actionList.insert(0, parent[1])
+        child = parent[0]
+    return actionList
 
 
 
@@ -180,16 +213,47 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
+    from util import PriorityQueue
     frontier = PriorityQueue()
-    frontier.push(problem.getStartState())
+    
+    node = problem.getStartState()
     explored = set()
     actionList = []
     transitionTable = dict()
-    node = problem.getStartState()
+    stateCostTable = dict()
+    frontier.push(node, 0)
+    stateCostTable[node] = 0
+    
+    while ( True ):
+        currentNode = frontier.pop()
+        if problem.isGoalState(currentNode):
+            break
+        explored.add(currentNode)
+        leaves = problem.getSuccessors(currentNode)
+        for leaf in leaves:
+            if leaf[0] not in explored:
+                newPathcost = stateCostTable.get(currentNode)+leaf[2] # cost = prevCost + stepCost
+                heurNewPathCost = newPathcost + heuristic(leaf[0], problem)
+                if transitionTable.has_key(leaf[0]):
+                    if newPathcost < stateCostTable[leaf[0]]:  # if newPathcost < oldPathcost then update
+                        frontier.update(leaf[0], heurNewPathCost)
+                        stateCostTable[leaf[0]] = newPathcost
+                        transitionTable[leaf[0]] = [currentNode, leaf[1]]
+                else:
+                    frontier.update(leaf[0], heurNewPathCost)
+                    stateCostTable[leaf[0]] = newPathcost
+                    transitionTable[leaf[0]] = [currentNode, leaf[1]]
+    
+    child = currentNode
 
-
-
-    util.raiseNotDefined()
+    # backtracing
+    while ( True ):
+        parent = transitionTable.get(child)
+        if parent == None:
+            break
+        actionList.insert(0, parent[1])
+        child = parent[0]
+    return actionList
 
 
 # Abbreviations
