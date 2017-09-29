@@ -27,6 +27,7 @@ class SearchProblem:
     You do not need to change anything in this class, ever.
     """
 
+
     def getStartState(self):
         """
         Returns the start state for the search problem.
@@ -87,17 +88,87 @@ def depthFirstSearch(problem):
     print "Start's successors:", problem.getSuccessors(problem.getStartState())
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    from util import Stack
+    frontier = Stack()
+
+    node = problem.getStartState()
+    frontier.push(node)
+    explored = set()
+    actionList = []
+    transitionTable = dict()
+    
+    while ( True ):
+        leafNode = frontier.pop()
+        if problem.isGoalState(leafNode):
+            break
+        explored.add(leafNode)
+        leaves = problem.getSuccessors(leafNode)
+        for leaf in leaves:
+            if not (leaf[0] in explored or  transitionTable.has_key(leaf[0])):
+                frontier.push(leaf[0])
+                # record in transitionTable
+                transitionTable[leaf[0]] = [leafNode, leaf[1]]
+    
+    child = leafNode
+
+    # backtracing
+    while ( True ):
+        parent = transitionTable.get(child)
+        if parent == None:
+            break
+        actionList.insert(0, parent[1])
+        child = parent[0]
+    return actionList
+    
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    from util import Queue
+    frontier = Queue()
+
+    node = problem.getStartState()
+    frontier.push(node)
+    explored = set()
+    actionList = []
+    transitionTable = dict()
+    
+    while ( True ):
+        leafNode = frontier.pop()
+        if problem.isGoalState(leafNode):
+            break
+        explored.add(leafNode)
+        leaves = problem.getSuccessors(leafNode)
+        for leaf in leaves:
+            if not (leaf[0] in explored or  transitionTable.has_key(leaf[0])):
+                frontier.push(leaf[0])
+                # record in transitionTable
+                transitionTable[leaf[0]] = [leafNode, leaf[1]]
+    
+    child = leafNode
+
+    # backtracing
+    while ( True ):
+        parent = transitionTable.get(child)
+        if parent == None:
+            break
+        actionList.insert(0, parent[1])
+        child = parent[0]
+    return actionList
+
 
 def uniformCostSearch(problem):
     """Search the node of least total cost first."""
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    from util import PriorityQueue
+    frontier = PriorityQueue()
+    frontier.push(problem.getStartState())
+    explored = set()
+    actionList = []
+    transitionTable = dict()
+    node = problem.getStartState()
+
+
 
 def nullHeuristic(state, problem=None):
     """
@@ -109,6 +180,15 @@ def nullHeuristic(state, problem=None):
 def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
     "*** YOUR CODE HERE ***"
+    frontier = PriorityQueue()
+    frontier.push(problem.getStartState())
+    explored = set()
+    actionList = []
+    transitionTable = dict()
+    node = problem.getStartState()
+
+
+
     util.raiseNotDefined()
 
 
