@@ -288,6 +288,8 @@ class CornersProblem(search.SearchProblem):
         # Please add any code here which you would like to use
         # in initializing the problem
         "*** YOUR CODE HERE ***"
+        self.height = top-1
+        self.width = right-1
 
     def getStartState(self):
         """
@@ -365,23 +367,52 @@ def cornersHeuristic(state, problem):
     """
     from util import manhattanDistance
     position = state[0]
-
+    posx, posy = position
+    
     "*** YOUR CODE HERE ***"
-
+    width = problem.width
+    height = problem.height
     unvistedCorners = state[1]
     heuristic = 0
 
-    while len(unvistedCorners) != 0:
-        distances = []
-        for corner in unvistedCorners:
-            distances.append(manhattanDistance(position, corner))    
-        
-        heuristic += min(distances)
-        index = distances.index(min(distances))
-        position = unvistedCorners[index]
-        unvistedCorners = tuple(x for x in unvistedCorners if x != position)
+    if len(unvistedCorners) == 4:
+        while len(unvistedCorners) != 0:
+            distances = []
+            for corner in unvistedCorners:
+                distances.append(manhattanDistance(position, corner))    
+            heuristic += min(distances)
+            index = distances.index(min(distances))
+            position = unvistedCorners[index]
+            unvistedCorners = tuple(x for x in unvistedCorners if x != position)
+    elif len(unvistedCorners) == 3:
+        x1, y1 = unvistedCorners[0]
+        x2, y2 = unvistedCorners[1]
+        x3, y3 = unvistedCorners[2]
+        if x1 == x2:
+            if y1 == y3:
+                heuristic = min([abs(posx-x3)+abs(posy-y3), abs(posx-x2)+abs(posy-y2)])+width+height
+            elif y2 == y3:
+                heuristic = min([abs(posx-x1)+abs(posy-y1), abs(posx-x3)+abs(posy-y3)])+width+height
+        elif x2 == x3:
+            if y2 == y1:
+                heuristic = min([abs(posx-x3)+abs(posy-y3), abs(posx-x1)+abs(posy-y1)])+width+height
+            elif y3 == y1:
+                heuristic = min([abs(posx-x1)+abs(posy-y1), abs(posx-x2)+abs(posy-y2)])+width+height
+        elif x1 == x3:
+            if y1 == y2:
+                heuristic = min([abs(posx-x3)+abs(posy-y3), abs(posx-x2)+abs(posy-y2)])+width+height
+            elif y3 == y2:
+                heuristic = min([abs(posx-x1)+abs(posy-y1), abs(posx-x2)+abs(posy-y2)])+width+height
 
+    elif len(unvistedCorners) == 2:
+        heuristic = manhattanDistance(unvistedCorners[0], unvistedCorners[1])+MinManhattanDistance(position, unvistedCorners[0], unvistedCorners[1])
+    elif len(unvistedCorners) == 1:
+        heuristic = manhattanDistance(position, unvistedCorners[0])
+    
     return heuristic
+
+def MinManhattanDistance(start, end1, end2):
+    return min([(abs(start[0]-end1[0]) + abs(start[1]-end1[1])), (abs(start[0]-end2[0]) + abs(start[1]-end2[1]))])
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
