@@ -39,7 +39,7 @@ class ReflexAgent(Agent):
         some Directions.X for some X in the set {North, South, West, East, Stop}
         """
         # Collect legal moves and successor states
-        legalMoves = gameState.getLegalActions()
+        legalMoves = [action for action in gameState.getLegalActions() if action != 'Stop']
 
         # Choose one of the best actions
         scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
@@ -47,9 +47,32 @@ class ReflexAgent(Agent):
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
         chosenIndex = random.choice(bestIndices) # Pick randomly among the best
 
+        ReturnAction = legalMoves[chosenIndex]
         "Add more of your code here if you want to"
 
-        return legalMoves[chosenIndex]
+
+        Nxt_GameState = gameState.generatePacmanSuccessor(ReturnAction)
+        Nxt_legalMoves = [action for action in Nxt_GameState.getLegalActions() if action != 'Stop'] 
+        if len(Nxt_legalMoves) == 0:
+          return ReturnAction
+        Nxt_scores = [self.evaluationFunction(Nxt_GameState, Nxt_action) for Nxt_action in Nxt_legalMoves]
+        Nxt_bestScore = max(Nxt_scores)
+        Nxt_bestIndices = [Nxt_index for Nxt_index in range(len(Nxt_scores)) if Nxt_scores[Nxt_index] == Nxt_bestScore]
+        Nxt_chosenIndex = random.choice(Nxt_bestIndices) # Pick randomly among the best
+
+        Nxt_action = Nxt_legalMoves[Nxt_chosenIndex]
+
+
+        if Directions.REVERSE[ReturnAction] != Nxt_action:
+          return ReturnAction
+        else:
+          legalMoves.remove(ReturnAction)
+          scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
+          bestScore = max(scores)
+          bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
+          chosenIndex = random.choice(bestIndices) # Pick randomly among the best
+          ReturnAction = legalMoves[chosenIndex]
+          return ReturnAction
 
     def evaluationFunction(self, currentGameState, action):
         """
@@ -69,13 +92,55 @@ class ReflexAgent(Agent):
         # Useful information you can extract from a GameState (pacman.py)
         successorGameState = currentGameState.generatePacmanSuccessor(action)
         newPos = successorGameState.getPacmanPosition()
-        newFood = successorGameState.getFood()
+        currPos = currentGameState.getPacmanPosition()
+        Food = currentGameState.getFood()
         newGhostStates = successorGameState.getGhostStates()
+        newGhostPos = successorGameState.getGhostPositions()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
+        Allcapsules = successorGameState.getCapsules()
 
+        score = 0
+        for capsule in Allcapsules:
+          distance = manhattanDistance(capsule, newPos)
+          if newPos == capsule:
+            score += 5000
+          elif distance < 1:
+            score += 1000
+
+
+
+        for index, ScaredTimer in enumerate(newScaredTimes):
+          if ScaredTimer != 0:
+            distance = manhattanDistance(newPos, newGhostPos[index])
+            if newPos == newGhostPos[index]:
+              score += 3000
+            elif  distance < 1:
+              score += 2500
+            elif distance < 2:
+              score += 1000
+            elif distance < 3:
+              score += 700
+            elif distance*3 < ScaredTimer:
+              score += 200
+          else:
+            if newPos == newGhostPos[index]:
+              score = -999999
+            elif  manhattanDistance(newPos, newGhostPos[index]) < 1:
+              score -= 3000
+            elif manhattanDistance(newPos, newGhostPos[index]) < 2:
+              score -= 1000
+            elif manhattanDistance(newPos, newGhostPos[index]) < 3:
+              score -= 250
+
+        for foodPosition in Food.asList():
+          if foodPosition == newPos:
+            score += 920
+          else:
+            score += 300/manhattanDistance(newPos, foodPosition)
+
+        "*** YOUR CODE HERE ***"
+        return score
 def scoreEvaluationFunction(currentGameState):
     """
       This default evaluation function just returns the score of the state.
