@@ -135,9 +135,10 @@ class ReflexAgent(Agent):
 
         for foodPosition in Food.asList():
           if foodPosition == newPos:
-            score += 920
+            score += 900
           else:
             score += 300/manhattanDistance(newPos, foodPosition)
+
 
         "*** YOUR CODE HERE ***"
         return score
@@ -186,15 +187,46 @@ class MinimaxAgent(MultiAgentSearchAgent):
           gameState.getLegalActions(agentIndex):
             Returns a list of legal actions for an agent
             agentIndex=0 means Pacman, ghosts are >= 1
+            agentIndex=0 -> MAX
+            agentIndex>=1 -> MIN
 
           gameState.generateSuccessor(agentIndex, action):
             Returns the successor game state after an agent takes an action
 
           gameState.getNumAgents():
-            Returns the total number of agents in the game
+          Returns the total number of agents in the game
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        TotalNumAgent = gameState.getNumAgents()
+        TotalDepth = self.depth*TotalNumAgent
+
+        def MiniMax(gameState, depth, agentIndex):
+          if depth == 0 or gameState.isWin() or gameState.isLose():
+            return (self.evaluationFunction(gameState), None)
+
+          bestAction = None
+          legalMoves = [action for action in gameState.getLegalActions(agentIndex) if action != 'Stop']
+          successorGameStates = [gameState.generateSuccessor(agentIndex, action) for action in legalMoves]
+          if agentIndex == 0: # Pacman Max Player
+            bestValue = float("-inf") 
+            for index, state in enumerate(successorGameStates):
+              (value, _) = MiniMax(state, depth-1, agentIndex+1)
+              if value > bestValue:
+                bestValue, bestAction = value, legalMoves[index]
+            return (bestValue, bestAction)
+          else:
+            bestValue = float("inf")
+            for index, state in enumerate(successorGameStates):
+              if agentIndex == (TotalNumAgent-1):
+                (value, _) = MiniMax(state, depth-1, 0)
+              else:
+                (value, _) = MiniMax(state, depth-1, agentIndex+1)
+              if value < bestValue:
+                bestValue, bestAction = value, legalMoves[index]
+            return (bestValue, bestAction)
+
+        (_, ReturnAction) = MiniMax(gameState, TotalDepth, 0)
+        return ReturnAction
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
@@ -206,7 +238,44 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
           Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        TotalNumAgent = gameState.getNumAgents()
+        TotalDepth = self.depth*TotalNumAgent
+
+        def alphabeta(gameState, depth, alpha, beta, agentIndex):
+          if depth == 0 or gameState.isWin() or gameState.isLose():
+            return (self.evaluationFunction(gameState), None)
+
+          legalMoves = [action for action in gameState.getLegalActions(agentIndex) if action != 'Stop']
+          successorGameStates = [gameState.generateSuccessor(agentIndex, action) for action in legalMoves]
+          bestAction = None
+          if agentIndex == 0: # Pacman Max Player
+            bestValue = float("-inf")
+            for index, state in enumerate(successorGameStates):
+              (value, _) = alphabeta(state, depth-1, alpha, beta, agentIndex+1)
+              if value > bestValue:
+                bestValue, bestAction = value, legalMoves[index]
+              if value > alpha:
+                alpha = value
+              if beta <= alpha:
+                break
+            return (bestValue, bestAction)
+          else:
+            bestValue = float("inf")
+            for index, state in enumerate(successorGameStates):
+              if agentIndex == (TotalNumAgent-1):
+                (value, _) = alphabeta(state, depth-1, alpha, beta, 0)
+              else:
+                (value, _) = alphabeta(state, depth-1, alpha, beta, agentIndex+1)
+              if value < bestValue:
+                bestValue, bestAction = value, legalMoves[index]
+              if value < beta:
+                beta = value
+              if beta <= alpha:
+                break
+            return (bestValue, bestAction)
+
+        (_, action) = alphabeta(gameState, TotalDepth, float("-inf"), float("inf"), 0)
+        return action
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
