@@ -290,7 +290,37 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           legal moves.
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        TotalNumAgent = gameState.getNumAgents()
+        TotalDepth = self.depth*TotalNumAgent
+
+        def ExpectiMinimax(gameState, depth, agentIndex):
+          if depth == 0 or gameState.isWin() or gameState.isLose():
+            return (self.evaluationFunction(gameState), None)
+
+          bestAction = None
+          legalMoves = [action for action in gameState.getLegalActions(agentIndex) if action != 'Stop']
+
+          successorGameStates = [gameState.generateSuccessor(agentIndex, action) for action in legalMoves]
+          if agentIndex == 0: # Pacman Max Player
+            bestValue = float("-inf") 
+            for index, state in enumerate(successorGameStates):
+              (value, _) = ExpectiMinimax(state, depth-1, agentIndex+1)
+              if value > bestValue:
+                bestValue, bestAction = value, legalMoves[index]
+            return (bestValue, bestAction)
+          else:
+            bestValue = 0
+            for state in successorGameStates:
+              if agentIndex == (TotalNumAgent-1):
+                (value, _) = ExpectiMinimax(state, depth-1, 0)
+              else:
+                (value, _) = ExpectiMinimax(state, depth-1, agentIndex+1)
+              bestValue += float(value)/float(len(successorGameStates))
+            return (bestValue, bestAction)
+
+        (_, ReturnAction) = ExpectiMinimax(gameState, TotalDepth, 0)
+        return ReturnAction
+
 
 def betterEvaluationFunction(currentGameState):
     """
@@ -299,8 +329,342 @@ def betterEvaluationFunction(currentGameState):
 
       DESCRIPTION: <write something here so we know what you did>
     """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    if currentGameState.isWin():
+      return 999999999
+    if currentGameState.isLose():
+      return -999999999
+
+    ghostDistances, capsuleDistanceList = AllGhostsCapsulesDistance(currentGameState)
+    weightFood, weightGhost, weightCapsule, weightHunter = 5.0, 5.0, 5.0, 0.0
+    ghostScore, capsuleScore, hunterScore = 0.0, 0.0, 0.0
+
+    foodScore = 1.0 / shortestFoodDistance(currentGameState)
+
+    GhostStates = currentGameState.getGhostStates()
+
+    GhostPoses = currentGameState.getGhostPositions()
+    ScaredTimes = [ghostState.scaredTimer for ghostState in GhostStates]
+
+    if len(capsuleDistanceList) != 0:
+      capsuleScore = 1.0 / min(capsuleDistanceList)
+
+    for index, ScaredTimer in enumerate(ScaredTimes):
+      if ScaredTimer != 0:
+          ScaredTimer < ghostDistances[index]
+          weightHunter = 20.0
+          hunterScore += 1.0
+      else:
+          ghostScore = -1.0/ghostDistances[index]
+
+    
+    "a new evaluation function."
+    heuristic = currentGameState.getScore()+ weightFood*foodScore + weightGhost*ghostScore + weightCapsule*capsuleScore + weightHunter*hunterScore
+
+    return heuristic    
+
+
+def AllGhostsCapsulesDistance(GameState):
+    from util import Queue
+    frontier = Queue()
+
+    position = GameState.getPacmanPosition()
+    
+    NotFound = GameState.getGhostPositions()+ GameState.getCapsules()
+
+    frontier.push(position)
+    explored = set()
+    transitionTable = dict()
+    while ( True ):
+      if frontier.isEmpty():
+        break
+      x, y = frontier.pop()
+      if (x, y) in NotFound:
+        NotFound.remove((x,y))
+      if len(NotFound) == 0:
+        break
+      explored.add((x, y))
+      if not GameState.hasWall(x-1, y):
+        if not ((x-1, y) in explored or transitionTable.has_key((x-1, y))):
+          frontier.push((x-1, y))
+          transitionTable[(x-1, y)] = (x, y)
+
+      if not GameState.hasWall(x+1, y):
+        if not ((x+1, y) in explored or transitionTable.has_key((x+1, y))):
+          frontier.push((x+1, y))
+          transitionTable[(x+1, y)] = (x, y)
+
+      if not GameState.hasWall(x, y-1):
+        if not ((x, y-1) in explored or transitionTable.has_key((x, y-1))):
+          frontier.push((x, y-1))
+          transitionTable[(x, y-1)] = (x, y)
+
+      if not GameState.hasWall(x, y+1):
+        if not ((x, y+1) in explored or transitionTable.has_key((x, y+1))):
+          frontier.push((x, y+1))
+          transitionTable[(x, y+1)] = (x, y)
+
+    ghostDistanceList = []
+    capsuleDistanceList = []
+    GhostsPos = GameState.getGhostPositions()
+    CapsulesPos = GameState.getCapsules()
+    for ghostPos in GhostsPos:
+      count = 0
+      child = ghostPos    
+      while ( True ):
+        parent = transitionTable.get(child)
+        if parent == None:
+          break
+        count += 1
+        child = parent
+      ghostDistanceList.append(count)
+
+    for capsule in CapsulesPos:
+      count = 0
+      child = capsule    
+      while ( True ):
+        parent = transitionTable.get(child)
+        if parent == None:
+          break
+        count += 1
+        child = parent
+      capsuleDistanceList.append(count)
+    #print GameState
+    #print ghostDistanceList
+    #print capsuleDistanceList
+
+    return ghostDistanceList, capsuleDistanceList
+
+def AllGhostsDistance(GameState):
+    from util import Queue
+    frontier = Queue()
+
+    position = GameState.getPacmanPosition()
+    GhostsPos = GameState.getGhostPositions()
+    GhostsPosNotFind =  GameState.getGhostPositions()
+    frontier.push(position)
+    explored = set()
+    transitionTable = dict()
+    while ( True ):
+      if frontier.isEmpty():
+        return float("inf")
+      x, y = frontier.pop()
+      if (x, y) in GhostsPosNotFind:
+        GhostsPosNotFind.remove((x,y))
+        if len(GhostsPosNotFind) == 0:
+          break
+      explored.add((x, y))
+      if not GameState.hasWall(x-1, y):
+        if not ((x-1, y) in explored or transitionTable.has_key((x-1, y))):
+          frontier.push((x-1, y))
+          transitionTable[(x-1, y)] = (x, y)
+
+      if not GameState.hasWall(x+1, y):
+        if not ((x+1, y) in explored or transitionTable.has_key((x+1, y))):
+          frontier.push((x+1, y))
+          transitionTable[(x+1, y)] = (x, y)
+
+      if not GameState.hasWall(x, y-1):
+        if not ((x, y-1) in explored or transitionTable.has_key((x, y-1))):
+          frontier.push((x, y-1))
+          transitionTable[(x, y-1)] = (x, y)
+
+      if not GameState.hasWall(x, y+1):
+        if not ((x, y+1) in explored or transitionTable.has_key((x, y+1))):
+          frontier.push((x, y+1))
+          transitionTable[(x, y+1)] = (x, y)
+
+    ghostDistanceList = []
+
+    for ghostPos in GhostsPos:
+      count = 0
+      child = ghostPos    
+      while ( True ):
+        parent = transitionTable.get(child)
+        if parent == None:
+          break
+        count += 1
+        child = parent
+
+      ghostDistanceList.append(count)
+
+    return ghostDistanceList
+
+
+def GhostDistance(GameState, agentIndex):
+    from util import Queue
+    frontier = Queue()
+
+    position = GameState.getPacmanPosition()
+    GhostPos = GameState.getGhostPosition(agentIndex)
+    frontier.push(position)
+    explored = set()
+    transitionTable = dict()
+    count = 0
+    while ( True ):
+      if frontier.isEmpty():
+        return float("inf")
+      x, y = frontier.pop()
+      if (x, y) == GhostPos:
+        child = (x, y)
+        while ( True ):
+          parent = transitionTable.get(child)
+          if parent == None:
+            break
+          count += 1
+          child = parent
+        return count
+      explored.add((x, y))
+      if not GameState.hasWall(x-1, y):
+        if not ((x-1, y) in explored or transitionTable.has_key((x-1, y))):
+          frontier.push((x-1, y))
+          transitionTable[(x-1, y)] = (x, y)
+
+      if not GameState.hasWall(x+1, y):
+        if not ((x+1, y) in explored or transitionTable.has_key((x+1, y))):
+          frontier.push((x+1, y))
+          transitionTable[(x+1, y)] = (x, y)
+
+      if not GameState.hasWall(x, y-1):
+        if not ((x, y-1) in explored or transitionTable.has_key((x, y-1))):
+          frontier.push((x, y-1))
+          transitionTable[(x, y-1)] = (x, y)
+
+      if not GameState.hasWall(x, y+1):
+        if not ((x, y+1) in explored or transitionTable.has_key((x, y+1))):
+          frontier.push((x, y+1))
+          transitionTable[(x, y+1)] = (x, y)
+
+def shortestCapsuleDistance(GameState):
+    from util import Queue
+    frontier = Queue()
+
+    position = GameState.getPacmanPosition()
+    capsulesPos = GameState.getCapsules()
+    frontier.push(position)
+    explored = set()
+    transitionTable = dict()
+    count = 0
+    while ( True ):
+      if frontier.isEmpty():
+        return float("inf")
+      x, y = frontier.pop()
+      if (x, y) in capsulesPos:
+        child = (x, y)
+        while ( True ):
+          parent = transitionTable.get(child)
+          if parent == None:
+            break
+          count += 1
+          child = parent
+        return count
+      explored.add((x, y))
+      if not GameState.hasWall(x-1, y):
+        if not ((x-1, y) in explored or transitionTable.has_key((x-1, y))):
+          frontier.push((x-1, y))
+          transitionTable[(x-1, y)] = (x, y)
+
+      if not GameState.hasWall(x+1, y):
+        if not ((x+1, y) in explored or transitionTable.has_key((x+1, y))):
+          frontier.push((x+1, y))
+          transitionTable[(x+1, y)] = (x, y)
+
+      if not GameState.hasWall(x, y-1):
+        if not ((x, y-1) in explored or transitionTable.has_key((x, y-1))):
+          frontier.push((x, y-1))
+          transitionTable[(x, y-1)] = (x, y)
+
+      if not GameState.hasWall(x, y+1):
+        if not ((x, y+1) in explored or transitionTable.has_key((x, y+1))):
+          frontier.push((x, y+1))
+          transitionTable[(x, y+1)] = (x, y)
+
+
+def shortestFoodDistance(GameState):
+    from util import Queue
+    frontier = Queue()
+
+    position = GameState.getPacmanPosition()
+    frontier.push(position)
+    explored = set()
+    transitionTable = dict()
+    count = 0
+    while ( True ):
+      if frontier.isEmpty():
+        return float("inf")
+      x, y = frontier.pop()
+      if GameState.hasFood(x, y):
+        child = (x, y)
+        while ( True ):
+          parent = transitionTable.get(child)
+          if parent == None:
+            break
+          count += 1
+          child = parent
+        return count
+      explored.add((x, y))
+      if not GameState.hasWall(x-1, y):
+        if not ((x-1, y) in explored or transitionTable.has_key((x-1, y))):
+          frontier.push((x-1, y))
+          transitionTable[(x-1, y)] = (x, y)
+
+      if not GameState.hasWall(x+1, y):
+        if not ((x+1, y) in explored or transitionTable.has_key((x+1, y))):
+          frontier.push((x+1, y))
+          transitionTable[(x+1, y)] = (x, y)
+
+      if not GameState.hasWall(x, y-1):
+        if not ((x, y-1) in explored or transitionTable.has_key((x, y-1))):
+          frontier.push((x, y-1))
+          transitionTable[(x, y-1)] = (x, y)
+
+      if not GameState.hasWall(x, y+1):
+        if not ((x, y+1) in explored or transitionTable.has_key((x, y+1))):
+          frontier.push((x, y+1))
+          transitionTable[(x, y+1)] = (x, y)
+
+def shortestGhostDistance(GameState):
+    from util import Queue
+    frontier = Queue()
+
+    position = GameState.getPacmanPosition()
+    GhostsPos = GameState.getGhostPositions()
+    frontier.push(position)
+    explored = set()
+    transitionTable = dict()
+    count = 0
+    while ( True ):
+      if frontier.isEmpty():
+        return float("inf")
+      x, y = frontier.pop()
+      if (x, y) in GhostsPos:
+        child = (x, y)
+        while ( True ):
+          parent = transitionTable.get(child)
+          if parent == None:
+            break
+          count += 1
+          child = parent
+        return count
+      explored.add((x, y))
+      if not GameState.hasWall(x-1, y):
+        if not ((x-1, y) in explored or transitionTable.has_key((x-1, y))):
+          frontier.push((x-1, y))
+          transitionTable[(x-1, y)] = (x, y)
+
+      if not GameState.hasWall(x+1, y):
+        if not ((x+1, y) in explored or transitionTable.has_key((x+1, y))):
+          frontier.push((x+1, y))
+          transitionTable[(x+1, y)] = (x, y)
+
+      if not GameState.hasWall(x, y-1):
+        if not ((x, y-1) in explored or transitionTable.has_key((x, y-1))):
+          frontier.push((x, y-1))
+          transitionTable[(x, y-1)] = (x, y)
+
+      if not GameState.hasWall(x, y+1):
+        if not ((x, y+1) in explored or transitionTable.has_key((x, y+1))):
+          frontier.push((x, y+1))
+          transitionTable[(x, y+1)] = (x, y)
 
 # Abbreviation
 better = betterEvaluationFunction
