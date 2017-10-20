@@ -47,32 +47,11 @@ class ReflexAgent(Agent):
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
         chosenIndex = random.choice(bestIndices) # Pick randomly among the best
 
-        ReturnAction = legalMoves[chosenIndex]
         "Add more of your code here if you want to"
 
 
-        Nxt_GameState = gameState.generatePacmanSuccessor(ReturnAction)
-        Nxt_legalMoves = [action for action in Nxt_GameState.getLegalActions() if action != 'Stop'] 
-        if len(Nxt_legalMoves) == 0:
-          return ReturnAction
-        Nxt_scores = [self.evaluationFunction(Nxt_GameState, Nxt_action) for Nxt_action in Nxt_legalMoves]
-        Nxt_bestScore = max(Nxt_scores)
-        Nxt_bestIndices = [Nxt_index for Nxt_index in range(len(Nxt_scores)) if Nxt_scores[Nxt_index] == Nxt_bestScore]
-        Nxt_chosenIndex = random.choice(Nxt_bestIndices) # Pick randomly among the best
+        return legalMoves[chosenIndex]
 
-        Nxt_action = Nxt_legalMoves[Nxt_chosenIndex]
-
-
-        if Directions.REVERSE[ReturnAction] != Nxt_action:
-          return ReturnAction
-        else:
-          legalMoves.remove(ReturnAction)
-          scores = [self.evaluationFunction(gameState, action) for action in legalMoves]
-          bestScore = max(scores)
-          bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
-          chosenIndex = random.choice(bestIndices) # Pick randomly among the best
-          ReturnAction = legalMoves[chosenIndex]
-          return ReturnAction
 
     def evaluationFunction(self, currentGameState, action):
         """
@@ -90,58 +69,46 @@ class ReflexAgent(Agent):
         to create a masterful evaluation function.
         """
         # Useful information you can extract from a GameState (pacman.py)
+        
+
         successorGameState = currentGameState.generatePacmanSuccessor(action)
-        newPos = successorGameState.getPacmanPosition()
-        currPos = currentGameState.getPacmanPosition()
-        Food = currentGameState.getFood()
-        newGhostStates = successorGameState.getGhostStates()
-        newGhostPos = successorGameState.getGhostPositions()
-        newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
+        if successorGameState.isWin():
+          return 999999999
+        if successorGameState.isLose():
+          return -999999999
+        ghostDistances, capsuleDistanceList = AllGhostsCapsulesDistance(successorGameState)
+        weightFood, weightGhost, weightCapsule, weightHunter = 10.0, 5.0, 5.0, 0.0
+        ghostScore, capsuleScore, hunterScore = 0.0, 0.0, 0.0
 
-        Allcapsules = successorGameState.getCapsules()
+        foodScore = 1.0 / shortestFoodDistance(successorGameState)
 
-        score = 0
-        for capsule in Allcapsules:
-          distance = manhattanDistance(capsule, newPos)
-          if newPos == capsule:
-            score += 5000
-          elif distance < 1:
-            score += 1000
+        GhostStates = successorGameState.getGhostStates()
 
+        GhostPoses = successorGameState.getGhostPositions()
+        ScaredTimes = [ghostState.scaredTimer for ghostState in GhostStates]
 
+        if len(capsuleDistanceList) != 0:
+          capsuleScore = 1.0 / min(capsuleDistanceList)
+          if min(capsuleDistanceList)*2 < min(ghostDistances):
+            weightCapsule = 10.0
 
-        for index, ScaredTimer in enumerate(newScaredTimes):
-          if ScaredTimer != 0:
-            distance = manhattanDistance(newPos, newGhostPos[index])
-            if newPos == newGhostPos[index]:
-              score += 3000
-            elif  distance < 1:
-              score += 2500
-            elif distance < 2:
-              score += 1000
-            elif distance < 3:
-              score += 700
-            elif distance*3 < ScaredTimer:
-              score += 200
+        for index, ScaredTimer in enumerate(ScaredTimes):
+          if ScaredTimer > ghostDistances[index]*3:
+              weightHunter = 20.0
+              hunterScore += 1.0
           else:
-            if newPos == newGhostPos[index]:
-              score = -999999
-            elif  manhattanDistance(newPos, newGhostPos[index]) < 1:
-              score -= 3000
-            elif manhattanDistance(newPos, newGhostPos[index]) < 2:
-              score -= 1000
-            elif manhattanDistance(newPos, newGhostPos[index]) < 3:
-              score -= 250
+            if ghostDistances[index] < 3:
+              ghostScore = -100.0
+            elif ghostDistances[index] == 4:
+              ghostScore = -10.0
+            elif ghostDistances[index] == 5 and len(capsuleDistanceList) != 0:
+              if min(capsuleDistanceList) > 2:
+                ghostScore = -5.0
+    
+        heuristic = successorGameState.getScore()+ weightFood*foodScore + weightGhost*ghostScore + weightCapsule*capsuleScore + weightHunter*hunterScore
 
-        for foodPosition in Food.asList():
-          if foodPosition == newPos:
-            score += 900
-          else:
-            score += 300/manhattanDistance(newPos, foodPosition)
+        return heuristic   
 
-
-        "*** YOUR CODE HERE ***"
-        return score
 def scoreEvaluationFunction(currentGameState):
     """
       This default evaluation function just returns the score of the state.
