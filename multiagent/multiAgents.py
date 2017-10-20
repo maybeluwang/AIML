@@ -99,11 +99,13 @@ class ReflexAgent(Agent):
           else:
             if ghostDistances[index] < 3:
               ghostScore = -100.0
-            elif ghostDistances[index] == 4:
-              ghostScore = -10.0
-            elif ghostDistances[index] == 5 and len(capsuleDistanceList) != 0:
+            elif ghostDistances[index] < 4:
+              ghostScore = -5.0
+            elif ghostDistances[index] < 5:
+              ghostScore = -3.0
+            elif ghostDistances[index] <6 and len(capsuleDistanceList) != 0:
               if min(capsuleDistanceList) > 2:
-                ghostScore = -5.0
+                ghostScore = -1.0
     
         heuristic = successorGameState.getScore()+ weightFood*foodScore + weightGhost*ghostScore + weightCapsule*capsuleScore + weightHunter*hunterScore
 
@@ -302,7 +304,7 @@ def betterEvaluationFunction(currentGameState):
       return -999999999
 
     ghostDistances, capsuleDistanceList = AllGhostsCapsulesDistance(currentGameState)
-    weightFood, weightGhost, weightCapsule, weightHunter = 5.0, 5.0, 5.0, 0.0
+    weightFood, weightGhost, weightCapsule, weightHunter = 8.0, 10.0, 10.0, 0.0
     ghostScore, capsuleScore, hunterScore = 0.0, 0.0, 0.0
 
     foodScore = 1.0 / shortestFoodDistance(currentGameState)
@@ -314,17 +316,16 @@ def betterEvaluationFunction(currentGameState):
 
     if len(capsuleDistanceList) != 0:
       capsuleScore = 1.0 / min(capsuleDistanceList)
+      if min(capsuleDistanceList)*2 < min(ghostDistances):
+        weightCapsule = 20.0
 
     for index, ScaredTimer in enumerate(ScaredTimes):
-      if ScaredTimer != 0:
-          ScaredTimer < ghostDistances[index]
+      if ScaredTimer > ghostDistances[index]*1.25:
           weightHunter = 20.0
           hunterScore += 1.0
       else:
-          ghostScore = -1.0/ghostDistances[index]
-
+          ghostScore = min(ghostScore, -1.0/ghostDistances[index])
     
-    "a new evaluation function."
     heuristic = currentGameState.getScore()+ weightFood*foodScore + weightGhost*ghostScore + weightCapsule*capsuleScore + weightHunter*hunterScore
 
     return heuristic    
