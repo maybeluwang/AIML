@@ -102,3 +102,7 @@ ENV/
 
 # mac automatic file
 .DS_Store
+
+# Documentation only for HW
+Documentation.*
+*.zip
