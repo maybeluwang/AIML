@@ -1,14 +1,13 @@
 class: "DoubleInferenceAgentTest"
 
 seed: "188"
-
 layout: """
 %%%%%%%%%%%
 %  %%%%%  %
 %  %%%%%  %
-%%%%%%%%%%%
-%%%%%P%%%%%
-%%%%%%%%%%%
+%%%%   %%%%
+%%%% P %%%%
+%%%%   %%%%
 %  %%%%%%%%
 %  %%%%%%G%
 %%%%%%%%%%%
@@ -22,9 +21,10 @@ elapse: "False"
 
 checkUniform: "False"
 maxMoves: "100"
-
 numGhosts: "1"
+
 ghost: "SeededRandomGhostAgent"
-inference: "ParticleFilter"
-L2Tolerance: "0.1"
-errorMsg: "Particle filter observe test: %d inference errors."
+inference: "ExactInference"
+errorMsg: "Exact inference stationary pacman observe test: %d inference errors."
+L2Tolerance: "0.0001"
+

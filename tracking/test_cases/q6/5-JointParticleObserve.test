@@ -3,17 +3,11 @@ class: "DoubleInferenceAgentTest"
 seed: "188"
 
 layout: """
-%%%%%%%%%%%
-%%%%%%%%  %
-%%G%%%%%  %
-%%%%   %%%%
-%%%% P %%%%
-%%%%   %%%%
-%  %%%%%%%%
-%  %%%%%%G%
-%%%%%%%%%%%
-% % %%%%%%%
-%%%%%%%%%%%
+%%%%%%
+%P GG%
+%%%%%%
+% % %%
+%%%%%%  
 """
 
 observe: "True"
@@ -21,11 +15,11 @@ observe: "True"
 elapse: "False"
 
 checkUniform: "False"
-maxMoves: "60"
+maxMoves: "100"
 
 numGhosts: "2"
 ghost: "DispersingSeededGhost"
 inference: "MarginalInference"
-L2Tolerance: "0.1"
+L2Tolerance: "0.05"
 errorMsg: "Joint particle filter elapseTime test: %d inference errors."
 

@@ -3,15 +3,20 @@ class: "DoubleInferenceAgentTest"
 seed: "188"
 
 layout: """
-%%%%%%%
-%  G  %
-% %%% %
-% %P% %
-% %%% %
-%     %
-%%%%%%%
-% %%%%%
-%%%%%%%
+%%%%%%%%%%%
+%% % % % %%
+%    G    %
+%%       %%
+%         %
+%%       %%
+%         %
+%%       %%
+%         %
+%% % % % %%
+%%%%%%%%%%%
+%%%%%%%%P%%
+% %%%%%%%%%
+%%%%%%%%%%%
 """
 
 observe: "False"
@@ -19,7 +24,7 @@ observe: "False"
 elapse: "True"
 
 checkUniform: "False"
-maxMoves: "75"
+maxMoves: "200"
 
 numGhosts: "1"
 ghost: "GoSouthAgent"

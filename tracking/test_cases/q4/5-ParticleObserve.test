@@ -3,17 +3,11 @@ class: "DoubleInferenceAgentTest"
 seed: "188"
 
 layout: """
-%%%%%%%%%%%
-%  %%%%%  %
-%  %%%%%  %
-%%%%%%%%%%%
-%%%%%P%%%%%
-%%%%%%%%%%%
-%  %%%%%%%%
-%  %%%%%%G%
-%%%%%%%%%%%
-% %%%%%%%%%
-%%%%%%%%%%%
+%%%%%%
+%P  G%
+%%%%%%
+% %%%%
+%%%%%%
 """
 
 observe: "True"
@@ -26,5 +20,5 @@ maxMoves: "100"
 numGhosts: "1"
 ghost: "SeededRandomGhostAgent"
 inference: "ParticleFilter"
-L2Tolerance: "0.1"
+L2Tolerance: "0.05"
 errorMsg: "Particle filter observe test: %d inference errors."
