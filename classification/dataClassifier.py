@@ -79,12 +79,56 @@ def enhancedFeatureExtractorDigit(datum):
     ## datum.getPixel(x, y): get pixels of digit
     """
     features =  basicFeatureExtractorDigit(datum)
-
+    features = {}
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    for x in range(1, DIGIT_DATUM_WIDTH):
+        for y in range(1, DIGIT_DATUM_HEIGHT):
+            features[("horiz+", x, y)] = int(datum.getPixel(x, y) > datum.getPixel(x - 1, y))
+            features[("horiz-", x, y)] = int(datum.getPixel(x, y) < datum.getPixel(x - 1, y))
+            features[("verti+", x, y)] = int(datum.getPixel(x, y) > datum.getPixel(x, y - 1))
+            features[("verti-", x, y)] = int(datum.getPixel(x, y) < datum.getPixel(x, y - 1))
+    yCounter = util.Counter()
+    for x in range(1, DIGIT_DATUM_WIDTH):
+        for y in range(0, DIGIT_DATUM_HEIGHT):
+            if (datum.getPixel(x, y)>0) and (datum.getPixel(x-1, y)==0):
+                yCounter[y] +=1
+            elif (datum.getPixel(x, y)==0) and (datum.getPixel(x-1, y)>0):
+                yCounter[y] +=1
+    xCounter = util.Counter()
+    for x in range(0, DIGIT_DATUM_WIDTH):
+        for y in range(1, DIGIT_DATUM_HEIGHT):
+            if (datum.getPixel(x, y)>0) and (datum.getPixel(x, y-1)==0):
+                xCounter[x] +=1
+            elif (datum.getPixel(x, y)==0) and (datum.getPixel(x, y-1)>0):
+                xCounter[x] +=1
+    features[("xchange", xCounter.argMax())] = 1
+    features[("ychange", yCounter.argMax())] = 1
+
+    AreaCounter=1
+    for x in range(DIGIT_DATUM_WIDTH):
+        NumArea = check1 = area = check2 = 0
+        for y in range(DIGIT_DATUM_HEIGHT):
+            if datum.getPixel(x, y) > 0:
+                if check1 == 0:
+                    check1 = 1
+                if check1 == 1:
+                    if area == 1:
+                        check2 = 1
+            if datum.getPixel(x, y) == 0:
+                if check1 == 1:
+                    if area == 0:
+                        area = 1
+                    if area == 1:
+                        if check2 == 1:
+                            NumArea += 1
+                            check1 = area = check2 = 0
+            if NumArea > 0:
+                features[AreaCounter] = 1
+            else:
+                features[AreaCounter] = 0
+        AreaCounter += 1
 
     return features
-
 
 
 def basicFeatureExtractorPacman(state):
