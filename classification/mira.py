@@ -68,7 +68,40 @@ class MiraClassifier:
         ## Cgrid: a list of constant C
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        for iteration in range(self.max_iterations):
+            print "Starting MIRA iteration ", iteration, "..."
+            Score_C = []
+            Weights_C = {}
+            OriginWeights = self.weights.copy()
+            for const in Cgrid:
+                for FeatureVector, TrueLabel in zip(trainingData, trainingLabels):
+                    score = util.Counter()
+                    for label in self.legalLabels:
+                        score[label] = self.weights[label]*FeatureVector
+                    PredLabel = score.argMax()
+
+                    Tau = ((self.weights[PredLabel]-self.weights[TrueLabel])*FeatureVector+1.0)/2.0/(FeatureVector*FeatureVector)
+                    Tau = min([const, Tau])
+                    delta = FeatureVector.copy()
+                    for key, value in delta.items():
+                        delta[key] = value * Tau
+                    if PredLabel != TrueLabel:
+                        self.weights[TrueLabel] += delta
+                        self.weights[PredLabel] -= delta
+            
+                Weights_C[const] = self.weights
+                Score_C.append(sum(int(y_true==y_pred) for y_true, y_pred in zip(validationLabels, self.classify(validationData))))
+                self.weights = OriginWeights.copy()
+
+            BestConst, BestValScore = Cgrid[0], -1
+            for const, ValScore in zip(Cgrid, Score_C):
+                if ValScore > BestValScore:
+                    BestConst, BestValScore = const, ValScore
+                elif ValScore == BestValScore:
+                    if const < BestConst:
+                        BestConst, BestValScore = const, ValScore
+
+            self.weights = Weights_C[BestConst]
 
     def classify(self, data ):
         """
