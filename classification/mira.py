@@ -68,12 +68,14 @@ class MiraClassifier:
         ## Cgrid: a list of constant C
         """
         "*** YOUR CODE HERE ***"
-        for iteration in range(self.max_iterations):
-            print "Starting MIRA iteration ", iteration, "..."
-            Score_C = []
-            Weights_C = {}
-            OriginWeights = self.weights.copy()
-            for const in Cgrid:
+        OriginWeights = self.weights.copy()
+        Score_C = []
+        Weights_C = {}
+        for const in Cgrid:
+            
+            self.weights = OriginWeights.copy()
+            for iteration in range(self.max_iterations):
+                print "Starting MIRA iteration ", iteration, "..."
                 for FeatureVector, TrueLabel in zip(trainingData, trainingLabels):
                     score = util.Counter()
                     for label in self.legalLabels:
@@ -89,19 +91,18 @@ class MiraClassifier:
                         self.weights[TrueLabel] += delta
                         self.weights[PredLabel] -= delta
             
-                Weights_C[const] = self.weights
-                Score_C.append(sum(int(y_true==y_pred) for y_true, y_pred in zip(validationLabels, self.classify(validationData))))
-                self.weights = OriginWeights.copy()
+            Weights_C[const] = self.weights
+            Score_C.append(sum(int(y_true==y_pred) for y_true, y_pred in zip(validationLabels, self.classify(validationData))))
 
-            BestConst, BestValScore = Cgrid[0], -1
-            for const, ValScore in zip(Cgrid, Score_C):
-                if ValScore > BestValScore:
+        BestConst, BestValScore = Cgrid[0], -1
+        for const, ValScore in zip(Cgrid, Score_C):
+            if ValScore > BestValScore:
+                BestConst, BestValScore = const, ValScore
+            elif ValScore == BestValScore:
+                if const < BestConst:
                     BestConst, BestValScore = const, ValScore
-                elif ValScore == BestValScore:
-                    if const < BestConst:
-                        BestConst, BestValScore = const, ValScore
 
-            self.weights = Weights_C[BestConst]
+        self.weights = Weights_C[BestConst]
 
     def classify(self, data ):
         """
