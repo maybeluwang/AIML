@@ -176,9 +176,154 @@ def enhancedPacmanFeatures(state, action):
     """
     features = util.Counter()
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+
+    successor = state.generateSuccessor(0, action)
+    foodDistance = shortestFoodDistance(successor)
+    ghostDistances, capsuleDistanceList = AllGhostsCapsulesDistance(successor)
+    capsuleDistanceList.sort()
+    weightFood, weightGhost, weightCapsule, weightHunter, weightStop, hunterScore = 8.0, 10.0, 10.0, 0.0, 10.0, 0.0
+
+    GhostStates = successor.getGhostStates()
+    ScaredTimes = [ghostState.scaredTimer for ghostState in GhostStates]
+
+    features["Win"] = state.isWin()
+    features["Lose"] = state.isLose()
+    #print action
+    features["STOP"] = int(action == 'Stop') * weightStop
+    features["Food"] = 10.0/foodDistance
+
+    for index, ScaredTimer in enumerate(ScaredTimes):
+      if ScaredTimer > ghostDistances[index]*1.25:
+          weightHunter = 10.0
+          hunterScore += 1.0
+
+    ghostDistances.sort()
+
+    for ghostIndex in range(len(ghostDistances)):
+        if ghostDistances[ghostIndex] < 3:
+            features[("Ghost", ghostIndex)] = 5.0/(ghostDistances[ghostIndex]+0.1)*weightGhost
+        elif ghostDistances[ghostIndex] < 5:
+            features[("Ghost", ghostIndex)] = 1.0/(ghostDistances[ghostIndex]+0.1)*weightGhost
+        elif ghostDistances[ghostIndex] < 7:
+            features[("Ghost", ghostIndex)] = 0.2/(ghostDistances[ghostIndex]+0.1)*weightGhost
+        else:
+            features[("Ghost", ghostIndex)] = 0
+    for capsuleIndex in range(len(capsuleDistanceList)):
+        features[("Capsule", capsuleIndex)] = 5.0/(capsuleDistanceList[capsuleIndex]+0.1)
+
+
     return features
 
+def shortestFoodDistance(GameState):
+    from util import Queue
+    frontier = Queue()
+
+    position = GameState.getPacmanPosition()
+    frontier.push(position)
+    explored = set()
+    transitionTable = dict()
+    count = 0
+    while ( True ):
+      if frontier.isEmpty():
+        return float("inf")
+      x, y = frontier.pop()
+      if GameState.hasFood(x, y):
+        child = (x, y)
+        while ( True ):
+          parent = transitionTable.get(child)
+          if parent == None:
+            break
+          count += 1
+          child = parent
+        return count
+      explored.add((x, y))
+      if not GameState.hasWall(x-1, y):
+        if not ((x-1, y) in explored or transitionTable.has_key((x-1, y))):
+          frontier.push((x-1, y))
+          transitionTable[(x-1, y)] = (x, y)
+
+      if not GameState.hasWall(x+1, y):
+        if not ((x+1, y) in explored or transitionTable.has_key((x+1, y))):
+          frontier.push((x+1, y))
+          transitionTable[(x+1, y)] = (x, y)
+
+      if not GameState.hasWall(x, y-1):
+        if not ((x, y-1) in explored or transitionTable.has_key((x, y-1))):
+          frontier.push((x, y-1))
+          transitionTable[(x, y-1)] = (x, y)
+
+      if not GameState.hasWall(x, y+1):
+        if not ((x, y+1) in explored or transitionTable.has_key((x, y+1))):
+          frontier.push((x, y+1))
+          transitionTable[(x, y+1)] = (x, y)
+
+def AllGhostsCapsulesDistance(GameState):
+    from util import Queue
+    frontier = Queue()
+
+    position = GameState.getPacmanPosition()
+    
+    NotFound = GameState.getGhostPositions()+ GameState.getCapsules()
+
+    frontier.push(position)
+    explored = set()
+    transitionTable = dict()
+    while ( True ):
+      if frontier.isEmpty():
+        break
+      x, y = frontier.pop()
+      if (x, y) in NotFound:
+        NotFound.remove((x,y))
+      if len(NotFound) == 0:
+        break
+      explored.add((x, y))
+      if not GameState.hasWall(x-1, y):
+        if not ((x-1, y) in explored or transitionTable.has_key((x-1, y))):
+          frontier.push((x-1, y))
+          transitionTable[(x-1, y)] = (x, y)
+
+      if not GameState.hasWall(x+1, y):
+        if not ((x+1, y) in explored or transitionTable.has_key((x+1, y))):
+          frontier.push((x+1, y))
+          transitionTable[(x+1, y)] = (x, y)
+
+      if not GameState.hasWall(x, y-1):
+        if not ((x, y-1) in explored or transitionTable.has_key((x, y-1))):
+          frontier.push((x, y-1))
+          transitionTable[(x, y-1)] = (x, y)
+
+      if not GameState.hasWall(x, y+1):
+        if not ((x, y+1) in explored or transitionTable.has_key((x, y+1))):
+          frontier.push((x, y+1))
+          transitionTable[(x, y+1)] = (x, y)
+
+    ghostDistanceList = []
+    capsuleDistanceList = []
+    GhostsPos = GameState.getGhostPositions()
+    CapsulesPos = GameState.getCapsules()
+    for ghostPos in GhostsPos:
+      count = 0
+      child = ghostPos    
+      while ( True ):
+        parent = transitionTable.get(child)
+        if parent == None:
+          break
+        count += 1
+        child = parent
+      ghostDistanceList.append(count)
+
+    for capsule in CapsulesPos:
+      count = 0
+      child = capsule    
+      while ( True ):
+        parent = transitionTable.get(child)
+        if parent == None:
+          break
+        count += 1
+        child = parent
+      capsuleDistanceList.append(count)
+
+    return ghostDistanceList, capsuleDistanceList
 
 def contestFeatureExtractorDigit(datum):
     """
