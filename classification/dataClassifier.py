@@ -84,61 +84,65 @@ def enhancedFeatureExtractorDigit(datum):
     features[("NumRegion", 0)] = 0
     features[("NumRegion", 1)] = 0
     features[("NumRegion", 2)] = 0
+    #features[("NumRegionTop", 0)] = 0
+    #features[("NumRegionTop", 1)] = 0
+    features[("NumRegionButtom", 0)] = 0
+    features[("NumRegionButtom", 1)] = 0
     features["VertiLineMiddle"] = 0
     features["HoriLineMiddle"] = 0
 
-    def asList(datum):
+    def asList(datum,RegionX1=0, RegionX2=DIGIT_DATUM_WIDTH, RegionY1=0, RegionY2=DIGIT_DATUM_HEIGHT):
         list = []
-        for x in xrange(DIGIT_DATUM_WIDTH):
-            for y in xrange(DIGIT_DATUM_HEIGHT):
+        for x in xrange(RegionX1, RegionX2):
+            for y in xrange(RegionY1, RegionY2):
                 if datum.getPixel(x,y)==0: list.append( (x,y) )
         return list
 
-    def getNeighborsSpace(x, y):
+    def getNeighborsSpace(x, y, RegionX1=0, RegionX2=DIGIT_DATUM_WIDTH, RegionY1=0, RegionY2=DIGIT_DATUM_HEIGHT):
         neighbors = []
-        if x > 0:
+        if x > RegionX1:
             if datum.getPixel(x-1, y) == 0:
                 neighbors.append((x - 1, y))
-        if x < DIGIT_DATUM_WIDTH - 1:
+        if x < RegionX2 - 1:
             if datum.getPixel(x+1, y) == 0:
                 neighbors.append((x + 1, y))
-        if y > 0:
+        if y > RegionY1:
             if datum.getPixel(x, y-1) == 0:
                 neighbors.append((x, y - 1))
-        if y < DIGIT_DATUM_HEIGHT - 1:
+        if y < RegionY2 - 1:
             if datum.getPixel(x, y+1) ==0:
                 neighbors.append((x, y + 1))
         return neighbors
 
-    Space = asList(datum)
-    from util import Queue
+    def FindRegionNum(RegionX1=0, RegionX2=DIGIT_DATUM_WIDTH, RegionY1=0, RegionY2=DIGIT_DATUM_HEIGHT):
+        Space = asList(datum, RegionX1, RegionX2, RegionY1, RegionY2)
+        from util import Queue
 
-    NumRegion = 0
-    while (len(Space) != 0):
-        frontier = Queue()
-        explored = set()
-        node = Space.pop(0)
-        NumRegion += 1
-        frontier.push(node)
-        explored.add(node)
-        while ( True ):
-            if frontier.isEmpty():
-                break
-            currentNode = frontier.pop()
-            if currentNode in Space:
-                Space.remove(currentNode)
-            if (len(Space) == 0):
-                break
-            explored.add(currentNode)
-            leaves = getNeighborsSpace(*currentNode)
-            for leaf in leaves:
-                if leaf not in explored :
-                    explored.add(leaf)
-                    frontier.push(leaf)
-
-    features[("NumRegion", NumRegion%3)] = 1
-    #print NumRegion
-    
+        NumRegion = 0
+        while (len(Space) != 0):
+            frontier = Queue()
+            explored = set()
+            node = Space.pop(0)
+            NumRegion += 1
+            frontier.push(node)
+            explored.add(node)
+            while ( True ):
+                if frontier.isEmpty():
+                    break
+                currentNode = frontier.pop()
+                x, y = currentNode
+                if currentNode in Space:
+                    Space.remove(currentNode)
+                if (len(Space) == 0):
+                    break
+                explored.add(currentNode)
+                leaves = getNeighborsSpace(x, y, RegionX1, RegionX2, RegionY1, RegionY2)
+                for leaf in leaves:
+                    if leaf not in explored :
+                        explored.add(leaf)
+                        frontier.push(leaf)
+        return NumRegion
+    """
     for x in xrange(DIGIT_DATUM_WIDTH/3, DIGIT_DATUM_WIDTH/3*2):
         for y in xrange(DIGIT_DATUM_HEIGHT/3):
             flag = True
@@ -148,6 +152,7 @@ def enhancedFeatureExtractorDigit(datum):
                     break 
             if flag:
                 features["VertiLineMiddle"] = 1
+    """
     for y in xrange(DIGIT_DATUM_HEIGHT/3, DIGIT_DATUM_HEIGHT/3*2):
         for x in xrange(DIGIT_DATUM_WIDTH/2+1):
             flag = True
@@ -156,40 +161,11 @@ def enhancedFeatureExtractorDigit(datum):
                     flag = False
                     break
             if flag:
-                features["HoriLineMiddle"] = 1    
-    """
-    for x in xrange(DIGIT_DATUM_WIDTH/3):
-        for y in xrange(DIGIT_DATUM_HEIGHT/3):
-            flag = True
-            for dy in xrange(DIGIT_DATUM_HEIGHT/3):
-                if datum.getPixel(x, y+dy) ==0:
-                    flag = False
-                    break 
-            if flag:
-                features["VertiLineLeftTopShort"] = 1
-    
-    for y in xrange(DIGIT_DATUM_HEIGHT/3):
-        for x in xrange(DIGIT_DATUM_WIDTH/2+1):
-            flag = True
-            for dx in xrange(DIGIT_DATUM_WIDTH/3):
-                if datum.getPixel(x+dx, y) ==0:
-                    flag = False
-                    break
-            if flag:
-                features["HoriLineTop"] = 1
+                features["HoriLineMiddle"] = 1  
 
-
-
-    for y in xrange(DIGIT_DATUM_HEIGHT/3*2, DIGIT_DATUM_HEIGHT):
-        for x in xrange(DIGIT_DATUM_WIDTH/2+1):
-            flag = True
-            for dx in xrange(DIGIT_DATUM_WIDTH/3):
-                if datum.getPixel(x+dx, y) ==0:
-                    flag = False
-                    break
-            if flag:
-                features["HoriLineBottom"] = 1
-    """
+    features[("NumRegion", FindRegionNum()%3)] = 1
+    #features[("NumRegionTop", FindRegionNum(RegionY2=(sum(Hy)/len(Hy)))%2)] = 1
+    features[("NumRegionButtom", FindRegionNum(RegionY1=DIGIT_DATUM_HEIGHT/2, RegionY2=DIGIT_DATUM_HEIGHT)%2)] = 1
     return features
 
 
