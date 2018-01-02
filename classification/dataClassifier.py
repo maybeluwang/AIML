@@ -84,13 +84,11 @@ def enhancedFeatureExtractorDigit(datum):
     features[("NumRegion", 0)] = 0
     features[("NumRegion", 1)] = 0
     features[("NumRegion", 2)] = 0
-    #features[("NumRegionTop", 0)] = 0
-    #features[("NumRegionTop", 1)] = 0
-    features[("NumRegionButtom", 0)] = 0
-    features[("NumRegionButtom", 1)] = 0
-    features["VertiLineMiddle"] = 0
-    features["HoriLineMiddle"] = 0
 
+    for x in xrange(DIGIT_DATUM_WIDTH):
+        for y in xrange(DIGIT_DATUM_WIDTH):
+            features[("hole",x,y)] = 0
+    
     def asList(datum,RegionX1=0, RegionX2=DIGIT_DATUM_WIDTH, RegionY1=0, RegionY2=DIGIT_DATUM_HEIGHT):
         list = []
         for x in xrange(RegionX1, RegionX2):
@@ -100,18 +98,14 @@ def enhancedFeatureExtractorDigit(datum):
 
     def getNeighborsSpace(x, y, RegionX1=0, RegionX2=DIGIT_DATUM_WIDTH, RegionY1=0, RegionY2=DIGIT_DATUM_HEIGHT):
         neighbors = []
-        if x > RegionX1:
-            if datum.getPixel(x-1, y) == 0:
-                neighbors.append((x - 1, y))
-        if x < RegionX2 - 1:
-            if datum.getPixel(x+1, y) == 0:
-                neighbors.append((x + 1, y))
-        if y > RegionY1:
-            if datum.getPixel(x, y-1) == 0:
-                neighbors.append((x, y - 1))
-        if y < RegionY2 - 1:
-            if datum.getPixel(x, y+1) ==0:
-                neighbors.append((x, y + 1))
+
+        for i in xrange(x-1, x+2):
+            for j in xrange(y-1, y+2):
+                if i >=RegionX1 and i < RegionX2 and j >= RegionY1 and j < RegionY2:
+                    if (i==x and j==y):
+                        pass
+                    elif datum.getPixel(i,j) == 0:
+                        neighbors.append((i,j))
         return neighbors
 
     def FindRegionNum(RegionX1=0, RegionX2=DIGIT_DATUM_WIDTH, RegionY1=0, RegionY2=DIGIT_DATUM_HEIGHT):
@@ -133,6 +127,8 @@ def enhancedFeatureExtractorDigit(datum):
                 x, y = currentNode
                 if currentNode in Space:
                     Space.remove(currentNode)
+                    if NumRegion > 1:
+                        features[("hole",x,y)] = 1
                 if (len(Space) == 0):
                     break
                 explored.add(currentNode)
@@ -142,30 +138,9 @@ def enhancedFeatureExtractorDigit(datum):
                         explored.add(leaf)
                         frontier.push(leaf)
         return NumRegion
-    """
-    for x in xrange(DIGIT_DATUM_WIDTH/3, DIGIT_DATUM_WIDTH/3*2):
-        for y in xrange(DIGIT_DATUM_HEIGHT/3):
-            flag = True
-            for dy in xrange(DIGIT_DATUM_HEIGHT/2):
-                if datum.getPixel(x, y+dy) ==0:
-                    flag = False
-                    break 
-            if flag:
-                features["VertiLineMiddle"] = 1
-    """
-    for y in xrange(DIGIT_DATUM_HEIGHT/3, DIGIT_DATUM_HEIGHT/3*2):
-        for x in xrange(DIGIT_DATUM_WIDTH/2+1):
-            flag = True
-            for dx in xrange(DIGIT_DATUM_WIDTH/3):
-                if datum.getPixel(x+dx, y) ==0:
-                    flag = False
-                    break
-            if flag:
-                features["HoriLineMiddle"] = 1  
 
     features[("NumRegion", FindRegionNum()%3)] = 1
-    #features[("NumRegionTop", FindRegionNum(RegionY2=(sum(Hy)/len(Hy)))%2)] = 1
-    features[("NumRegionButtom", FindRegionNum(RegionY1=DIGIT_DATUM_HEIGHT/2, RegionY2=DIGIT_DATUM_HEIGHT)%2)] = 1
+
     return features
 
 
@@ -214,41 +189,23 @@ def enhancedPacmanFeatures(state, action):
     """
     features = util.Counter()
     "*** YOUR CODE HERE ***"
-
     successor = state.generateSuccessor(0, action)
     foodDistance = shortestFoodDistance(successor)
     ghostDistances, capsuleDistanceList = AllGhostsCapsulesDistance(successor)
     capsuleDistanceList.sort()
-    weightFood, weightGhost, weightCapsule, weightHunter, weightStop, hunterScore = 8.0, 10.0, 10.0, 0.0, 10.0, 0.0
-
-    GhostStates = successor.getGhostStates()
-    ScaredTimes = [ghostState.scaredTimer for ghostState in GhostStates]
 
     features["Win"] = state.isWin()
     features["Lose"] = state.isLose()
-    #print action
-    features["STOP"] = int(action == 'Stop') * weightStop
+    features["STOP"] = int(action == 'Stop') * 10.0
     features["Food"] = 10.0/foodDistance
-
-    for index, ScaredTimer in enumerate(ScaredTimes):
-      if ScaredTimer > ghostDistances[index]*1.25:
-          weightHunter = 10.0
-          hunterScore += 1.0
+    features["Score"] = state.getScore()
 
     ghostDistances.sort()
 
     for ghostIndex in xrange(len(ghostDistances)):
-        if ghostDistances[ghostIndex] < 3:
-            features[("Ghost", ghostIndex)] = 5.0/(ghostDistances[ghostIndex]+0.1)*weightGhost
-        elif ghostDistances[ghostIndex] < 5:
-            features[("Ghost", ghostIndex)] = 1.0/(ghostDistances[ghostIndex]+0.1)*weightGhost
-        elif ghostDistances[ghostIndex] < 7:
-            features[("Ghost", ghostIndex)] = 0.2/(ghostDistances[ghostIndex]+0.1)*weightGhost
-        else:
-            features[("Ghost", ghostIndex)] = 0
+        features[("Ghost", ghostIndex)] = 1.0/(ghostDistances[ghostIndex]+0.1)
     for capsuleIndex in xrange(len(capsuleDistanceList)):
         features[("Capsule", capsuleIndex)] = 5.0/(capsuleDistanceList[capsuleIndex]+0.1)
-
 
     return features
 
@@ -401,6 +358,7 @@ def analysis(classifier, guesses, testLabels, testData, rawTestData, printImage)
 
     # Put any code here...
     # Example of use:
+    """
     for i in xrange(len(guesses)):
         prediction = guesses[i]
         truth = testLabels[i]
@@ -410,7 +368,7 @@ def analysis(classifier, guesses, testLabels, testData, rawTestData, printImage)
             print "Predicted %d; truth is %d" % (prediction, truth)
             print "Image: "
             print rawTestData[i]
-            
+    """   
 
 
 ## =====================
