@@ -78,56 +78,118 @@ def enhancedFeatureExtractorDigit(datum):
     ## DIGIT_DATUM_HEIGHT: pixel height of digit
     ## datum.getPixel(x, y): get pixels of digit
     """
+
     features =  basicFeatureExtractorDigit(datum)
-    features = {}
     "*** YOUR CODE HERE ***"
-    for x in range(1, DIGIT_DATUM_WIDTH):
-        for y in range(1, DIGIT_DATUM_HEIGHT):
-            features[("horiz+", x, y)] = int(datum.getPixel(x, y) > datum.getPixel(x - 1, y))
-            features[("horiz-", x, y)] = int(datum.getPixel(x, y) < datum.getPixel(x - 1, y))
-            features[("verti+", x, y)] = int(datum.getPixel(x, y) > datum.getPixel(x, y - 1))
-            features[("verti-", x, y)] = int(datum.getPixel(x, y) < datum.getPixel(x, y - 1))
-    yCounter = util.Counter()
-    for x in range(1, DIGIT_DATUM_WIDTH):
-        for y in range(0, DIGIT_DATUM_HEIGHT):
-            if (datum.getPixel(x, y)>0) and (datum.getPixel(x-1, y)==0):
-                yCounter[y] +=1
-            elif (datum.getPixel(x, y)==0) and (datum.getPixel(x-1, y)>0):
-                yCounter[y] +=1
-    xCounter = util.Counter()
-    for x in range(0, DIGIT_DATUM_WIDTH):
-        for y in range(1, DIGIT_DATUM_HEIGHT):
-            if (datum.getPixel(x, y)>0) and (datum.getPixel(x, y-1)==0):
-                xCounter[x] +=1
-            elif (datum.getPixel(x, y)==0) and (datum.getPixel(x, y-1)>0):
-                xCounter[x] +=1
-    features[("xchange", xCounter.argMax())] = 1
-    features[("ychange", yCounter.argMax())] = 1
+    features[("NumRegion", 0)] = 0
+    features[("NumRegion", 1)] = 0
+    features[("NumRegion", 2)] = 0
+    features["VertiLineMiddle"] = 0
+    features["HoriLineMiddle"] = 0
 
-    AreaCounter=1
-    for x in range(DIGIT_DATUM_WIDTH):
-        NumArea = check1 = area = check2 = 0
-        for y in range(DIGIT_DATUM_HEIGHT):
-            if datum.getPixel(x, y) > 0:
-                if check1 == 0:
-                    check1 = 1
-                if check1 == 1:
-                    if area == 1:
-                        check2 = 1
-            if datum.getPixel(x, y) == 0:
-                if check1 == 1:
-                    if area == 0:
-                        area = 1
-                    if area == 1:
-                        if check2 == 1:
-                            NumArea += 1
-                            check1 = area = check2 = 0
-            if NumArea > 0:
-                features[AreaCounter] = 1
-            else:
-                features[AreaCounter] = 0
-        AreaCounter += 1
+    def asList(datum):
+        list = []
+        for x in xrange(DIGIT_DATUM_WIDTH):
+            for y in xrange(DIGIT_DATUM_HEIGHT):
+                if datum.getPixel(x,y)==0: list.append( (x,y) )
+        return list
 
+    def getNeighborsSpace(x, y):
+        neighbors = []
+        if x > 0:
+            if datum.getPixel(x-1, y) == 0:
+                neighbors.append((x - 1, y))
+        if x < DIGIT_DATUM_WIDTH - 1:
+            if datum.getPixel(x+1, y) == 0:
+                neighbors.append((x + 1, y))
+        if y > 0:
+            if datum.getPixel(x, y-1) == 0:
+                neighbors.append((x, y - 1))
+        if y < DIGIT_DATUM_HEIGHT - 1:
+            if datum.getPixel(x, y+1) ==0:
+                neighbors.append((x, y + 1))
+        return neighbors
+
+    Space = asList(datum)
+    from util import Queue
+
+    NumRegion = 0
+    while (len(Space) != 0):
+        frontier = Queue()
+        explored = set()
+        node = Space.pop(0)
+        NumRegion += 1
+        frontier.push(node)
+        explored.add(node)
+        while ( True ):
+            if frontier.isEmpty():
+                break
+            currentNode = frontier.pop()
+            if currentNode in Space:
+                Space.remove(currentNode)
+            if (len(Space) == 0):
+                break
+            explored.add(currentNode)
+            leaves = getNeighborsSpace(*currentNode)
+            for leaf in leaves:
+                if leaf not in explored :
+                    explored.add(leaf)
+                    frontier.push(leaf)
+
+    features[("NumRegion", NumRegion%3)] = 1
+    #print NumRegion
+    
+    for x in xrange(DIGIT_DATUM_WIDTH/3, DIGIT_DATUM_WIDTH/3*2):
+        for y in xrange(DIGIT_DATUM_HEIGHT/3):
+            flag = True
+            for dy in xrange(DIGIT_DATUM_HEIGHT/2):
+                if datum.getPixel(x, y+dy) ==0:
+                    flag = False
+                    break 
+            if flag:
+                features["VertiLineMiddle"] = 1
+    for y in xrange(DIGIT_DATUM_HEIGHT/3, DIGIT_DATUM_HEIGHT/3*2):
+        for x in xrange(DIGIT_DATUM_WIDTH/2+1):
+            flag = True
+            for dx in xrange(DIGIT_DATUM_WIDTH/3):
+                if datum.getPixel(x+dx, y) ==0:
+                    flag = False
+                    break
+            if flag:
+                features["HoriLineMiddle"] = 1    
+    """
+    for x in xrange(DIGIT_DATUM_WIDTH/3):
+        for y in xrange(DIGIT_DATUM_HEIGHT/3):
+            flag = True
+            for dy in xrange(DIGIT_DATUM_HEIGHT/3):
+                if datum.getPixel(x, y+dy) ==0:
+                    flag = False
+                    break 
+            if flag:
+                features["VertiLineLeftTopShort"] = 1
+    
+    for y in xrange(DIGIT_DATUM_HEIGHT/3):
+        for x in xrange(DIGIT_DATUM_WIDTH/2+1):
+            flag = True
+            for dx in xrange(DIGIT_DATUM_WIDTH/3):
+                if datum.getPixel(x+dx, y) ==0:
+                    flag = False
+                    break
+            if flag:
+                features["HoriLineTop"] = 1
+
+
+
+    for y in xrange(DIGIT_DATUM_HEIGHT/3*2, DIGIT_DATUM_HEIGHT):
+        for x in xrange(DIGIT_DATUM_WIDTH/2+1):
+            flag = True
+            for dx in xrange(DIGIT_DATUM_WIDTH/3):
+                if datum.getPixel(x+dx, y) ==0:
+                    flag = False
+                    break
+            if flag:
+                features["HoriLineBottom"] = 1
+    """
     return features
 
 
@@ -199,7 +261,7 @@ def enhancedPacmanFeatures(state, action):
 
     ghostDistances.sort()
 
-    for ghostIndex in range(len(ghostDistances)):
+    for ghostIndex in xrange(len(ghostDistances)):
         if ghostDistances[ghostIndex] < 3:
             features[("Ghost", ghostIndex)] = 5.0/(ghostDistances[ghostIndex]+0.1)*weightGhost
         elif ghostDistances[ghostIndex] < 5:
@@ -208,7 +270,7 @@ def enhancedPacmanFeatures(state, action):
             features[("Ghost", ghostIndex)] = 0.2/(ghostDistances[ghostIndex]+0.1)*weightGhost
         else:
             features[("Ghost", ghostIndex)] = 0
-    for capsuleIndex in range(len(capsuleDistanceList)):
+    for capsuleIndex in xrange(len(capsuleDistanceList)):
         features[("Capsule", capsuleIndex)] = 5.0/(capsuleDistanceList[capsuleIndex]+0.1)
 
 
@@ -363,16 +425,16 @@ def analysis(classifier, guesses, testLabels, testData, rawTestData, printImage)
 
     # Put any code here...
     # Example of use:
-    # for i in range(len(guesses)):
-    #     prediction = guesses[i]
-    #     truth = testLabels[i]
-    #     if (prediction != truth):
-    #         print "==================================="
-    #         print "Mistake on example %d" % i
-    #         print "Predicted %d; truth is %d" % (prediction, truth)
-    #         print "Image: "
-    #         print rawTestData[i]
-    #         break
+    for i in xrange(len(guesses)):
+        prediction = guesses[i]
+        truth = testLabels[i]
+        if (prediction != truth):
+            print "==================================="
+            print "Mistake on example %d" % i
+            print "Predicted %d; truth is %d" % (prediction, truth)
+            print "Image: "
+            print rawTestData[i]
+            
 
 
 ## =====================
